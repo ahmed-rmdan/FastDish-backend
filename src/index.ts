@@ -21,7 +21,7 @@ app.use('/admin',adminrouter)
 app.use('/user',userrouter)
 
 mongoose.connect(process.env.mongodburl as string).then(result=>{
-app.listen(Number(process.env.PORT) )
+app.listen(Number(process.env.PORT) || 3000 )
 })
 
 
