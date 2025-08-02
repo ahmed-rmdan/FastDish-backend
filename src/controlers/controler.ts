@@ -131,8 +131,9 @@ if (foundemail){
   return res.status(400).json({ message: 'Email already exisits' });
 }
 const errors=validationResult(req)
+console.log(errors)
 if(!errors.isEmpty()){
-  return res.status(400).json({ message: 'validation error' });
+  return res.status(400).json({ message: 'validation error' ,errors:errors});
 }
 const bcryptpass= await bcrypt.hash(userdata.password,12)
 const newuser=await new user({username:userdata.username,password:bcryptpass,telphone:userdata

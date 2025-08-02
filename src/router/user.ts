@@ -4,7 +4,7 @@ import { isauth } from '../middleaware'
 import { body } from 'express-validator'
 const router=express.Router()
 
-router.post('/signup',[body('username').trim().isEmpty().isLength({min:5})],creatnewuser)
+router.post('/signup',[body('username').trim().notEmpty()],creatnewuser)
 router.post('/signin',loginuser)
 router.post('/addfavourite/:mealid',isauth,addfavourite)
 router.get('/getfavourites',isauth,getfavourites)
