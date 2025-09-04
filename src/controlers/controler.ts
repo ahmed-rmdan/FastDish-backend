@@ -141,7 +141,7 @@ const newuser=await new user({username:userdata.username,password:bcryptpass,tel
 if(!newuser){
   return res.status(400).json({ message: 'somthing bad' });
 }
-const jwt=token.sign({userid:newuser._id.toString(),email:newuser.email},'veryverystrong',{expiresIn:'10m'})
+const jwt=token.sign({userid:newuser._id.toString(),email:newuser.email},'veryverystrong')
   return res.status(200).json({ message: 'signup succed',token:jwt });
 }
 
@@ -162,7 +162,7 @@ const checkpass=await bcrypt.compare(userdata.password,founduser.password as str
 if(!checkpass){
     return res.status(401).json({message: 'password is not correct' });
 }
-const jwt=token.sign({userid:founduser._id.toString(),email:founduser.email},'veryverystrong',{expiresIn:'10m'})
+const jwt=token.sign({userid:founduser._id.toString(),email:founduser.email},'veryverystrong')
 
   return res.status(200).json({message: 'signin succed',token:jwt });
 
@@ -396,10 +396,10 @@ const payment=await stripe.checkout.sessions.create({
   line_items: stripemeals
   ,
   mode:'payment',
-  success_url:'http://localhost:3000/stripesucced',
-  cancel_url:'http://localhost:3000/stripfailed'
+  success_url:'https://fastdish.netlify.app/stripesucced',
+  cancel_url:'https://fastdish.netlify.app/stripfailed'
 })
-const paymenturl=await payment.url
+const paymenturl= payment.url
 
 res.status(200).json({url:paymenturl})
 
