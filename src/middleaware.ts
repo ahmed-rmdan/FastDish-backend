@@ -34,7 +34,7 @@ next()
 export const  isadmin= async (req:Request,res:Response,next:NextFunction)=>{
 
   const userid=req.userid
-  console.log(userid)
+ 
 if(!userid){
   return res.status(401).json({message:'somethimg went wrong'})
 }

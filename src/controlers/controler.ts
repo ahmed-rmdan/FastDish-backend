@@ -9,6 +9,8 @@ import { console } from 'inspector';
 import { order } from '../database/order';
 import Stripe from 'stripe';
 import { ExpressValidator, validationResult } from 'express-validator';
+import {io} from '../index'
+import { asyncWrapProviders } from 'async_hooks';
 
 type meal={_id:string,imgeurl:string,price:number,name:string,ingredients:string,type:string,quantity:number}
 type signupform={  username:string,
@@ -41,7 +43,7 @@ export const addproduct=(req:Request,res:Response,next:NextFunction)=>{
 export const editproduct=(req:Request,res:Response,next:NextFunction)=>{
     const id=req.params.productid
    const name:string= req.body.name
-   const price:number=req.body.price
+   const priceinput:string=req.body.price
    const ingredients:string=req.body.ingredients
    const imgeurl:string=req.body.imgeurl
    const type:string=req.body.type
@@ -58,8 +60,8 @@ export const editproduct=(req:Request,res:Response,next:NextFunction)=>{
     if(name!==undefined&&name!==""){
  product.name=name
     }
-       if(price!==undefined&&price!==null)
-    product.price=price
+       if(priceinput!==undefined&&priceinput!=='')
+    product.price=Number(priceinput)
    if(ingredients!==undefined&&ingredients!=='')
     product.ingredients=ingredients
  if(imgeurl!==undefined&&imgeurl!=='')
@@ -265,7 +267,8 @@ orderitems.forEach((elm,i)=>{
 })
 
 
-const neworder=await new order({user:new ObjectId(userid),state:'Preparing',totalprice:orderdata.totalprice,meals:oderemeals,details,address:orderdata.address,payment:'On Delivery'}).save()
+const neworder=await new order({user:new ObjectId(userid),state:'Preparing',totalprice:orderdata.totalprice,meals:oderemeals,details
+  ,address:orderdata.address,payment:'On Delivery'}).save()
 console.log(neworder._id)
 await user.findByIdAndUpdate(
   userid,
@@ -298,7 +301,7 @@ export const  getorders= async (req:Request,res:Response,next:NextFunction)=>{
                           }
 const userid=req.userid
 if(!userid){
-   res.status(401).json('autorizastionproblem')
+ return   res.status(401).json('autorizastionproblem')
 }
 
 const populateuser=await user.findById(userid).populate('orders')
@@ -311,7 +314,8 @@ const filterorders=userorders.map(order=>{
   return {address:order.address,state:order.state,totalprice:order.totalprice,details:order.details,_id:order._id}
 })
 
-res.status(200).json({message:'getorder',data:filterorders})
+
+res.status(200).json({message:'getorder',data:filterorders,userid})
 
 
 }
@@ -326,29 +330,34 @@ res.status(200).json({message:'welcome admin'})
 
 
 export const  getadminorders= async (req:Request,res:Response,next:NextFunction)=>{
-
+console.log('sadasdadsadsa')
  type user={username:string,
     password:string,
     email:string,
     adress:string,
-    telphone:number,_id:ObjectId, favourites:ObjectId[],orders:ObjectId[]}
-    type order={address:string,details:string,totalprice:number,state:string,_id:string,username:string,
-                          payment:string,meals:{quantity:string,meal:ObjectId}[],user:user     
+    telphone:number,_id:string, favourites:string[],orders:string[]}
+
+    type order={user:user,address:string,details:string,totalprice:number,
+      updatedAt:string,createdAt:string
+      ,state:string,_id:string ,payment:string
+      ,meals:{quantity:number,meal:string,_id:string}[]    
                           }
 
-const allorders=await order.find().sort({createdAt:-1}).populate('user')  as unknown as order[]
 
-if(!allorders) return  res.status(400).json('somthing bad happend')
+const allorders=await order.find().populate('user').sort({createdAt:-1}) as unknown as order[];
+
+
+console.log(allorders)
+
+
+if(!allorders) {
+return  res.status(400).json('somthing bad happend')
+} 
 
   
- const filterorders=allorders.map(order=>{
- 
-  return {username:order.user.username,details:order.details,address:order.address,_id:order._id,telphone:order.user.telphone,state:order.state,totalprice:order.totalprice,
-    payment:order.payment
-   }
- })
 
-res.status(200).json({message:'getadminorders',data:filterorders})
+
+res.status(200).json({message:'getadminorders',data:allorders})
 
 }
 
@@ -366,16 +375,42 @@ res.status(200).json({message:'order deleted'})
 
 
 export const  updateorder= async (req:Request,res:Response,next:NextFunction)=>{
+
 const updatevalue= req.body.update
 const orderid=req.params.orderid
+
 const curorder=await order.findById(orderid)
+console.log(curorder)
 if(!curorder){
   return res.status(400)
 }
 curorder!.state=updatevalue
 await curorder.save()
-res.status(200).json({message:'order updated'})
+
+if(!curorder.user){
+  return res.status(404)
 }
+ type user={username:string,
+    password:string,
+    email:string,
+    adress:string,
+    telphone:number,_id:ObjectId, favourites:ObjectId[],orders:ObjectId[]}
+    type order={address:string,details:string,totalprice:number,state:string,_id:string,username:string,
+                          payment:string,meals:{quantity:string,meal:ObjectId}[],user:user     
+                          }
+const userorders=await order.find({user:curorder.user}).populate('user').sort({createdAt:-1})  as unknown as order[]
+ 
+const filterorders=userorders.map(order=>{
+  return {address:order.address,state:order.state,totalprice:order.totalprice,details:order.details,_id:order._id}
+})
+console.log("About to emit getorders to:");
+ io.to("68b93431cb29c8258169ea24").emit("getorders", { orders: filterorders });
+res.status(200).json({message:'order updated'})
+
+
+}
+
+
 
 export const  stripecheckout= async (req:Request,res:Response,next:NextFunction)=>{
 const items:meal[]=req.body
