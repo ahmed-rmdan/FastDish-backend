@@ -403,8 +403,8 @@ const userorders=await order.find({user:curorder.user}).populate('user').sort({c
 const filterorders=userorders.map(order=>{
   return {address:order.address,state:order.state,totalprice:order.totalprice,details:order.details,_id:order._id}
 })
-console.log("About to emit getorders to:");
- io.to("68b93431cb29c8258169ea24").emit("getorders", { orders: filterorders });
+
+ io.to(curorder.user.toString()).emit("getorders", { orders: filterorders });
 res.status(200).json({message:'order updated'})
 
 
